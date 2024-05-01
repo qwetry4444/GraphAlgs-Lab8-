@@ -80,7 +80,7 @@ public:
     Graph   Kruskal(void);
     int     Hamiltonian(int v, int w, int Length, bool* Labelled, Graph& G);
     Graph   HamiltonianPath(int From, int To);
-    std::vector<double> dijkstra(int From, int Avoid);
+    std::vector<double> dijkstraAvoid(int From, int Avoid);
 };
 //---------------------------------------------------------------------------
 class SGraph : public Graph {
@@ -594,7 +594,7 @@ void   OrWGraph::Random(double Density, double MaxWeight)
 }
 
 
-std::vector<double> Graph::dijkstra(int start, int avoid) {
+std::vector<double> Graph::dijkstraAvoid(int start, int avoid) {
     int n = Size();
     std::vector<double> distance(n, std::numeric_limits<double>::infinity());
     std::vector<bool> visited(n, false);
@@ -633,6 +633,8 @@ std::vector<double> Graph::dijkstra(int start, int avoid) {
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
+    system("chcp 1251");
+
     //getch();
     Graph graph = Graph(5);
     graph.AddEdge(0, 1, 1);
@@ -641,10 +643,17 @@ int main(int argc, char* argv[])
     graph.AddEdge(1, 4, 5);
     graph.AddEdge(2, 4, 1);
     graph.AddEdge(3, 4, 2);
-    double distance = graph.dijkstra(0, 4)[0];
-    std::cout << distance;
+    std::cout << "Матрица смежности графа:" << std::endl;
     graph.Print();
-    graph.ShortestPath(0, 4).Print();
+    int avoidNode = 2;
+
+    std::vector<double> dist = graph.dijkstraAvoid(0, avoidNode);
+
+    std::cout << "Исходный узел = 0  " << "Минуя узел " << avoidNode << std::endl;
+    std::cout << "Узел назначения  " << "Расстояние" << std::endl;
+    for (int i = 0; i < dist.size(); i++) {
+        std::cout << i << " \t:\t " << dist.at(i) << std::endl;
+    }
     return 0;
 }
 //---------------------------------------------------------------------------
