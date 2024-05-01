@@ -6,6 +6,7 @@
 #include <vector>
 #include <limits>
 #include <queue>
+
 //В случае если код, представленный в данном файле, не запускается, то в зависимости от вида возникших ошибок
 //необходимо выполнить одно или несколько из следующих действий:
 //неизвестна iostream.h: убрать расширение h в строке #include <iostream.h>;
@@ -79,6 +80,7 @@ public:
     Graph   Kruskal(void);
     int     Hamiltonian(int v, int w, int Length, bool* Labelled, Graph& G);
     Graph   HamiltonianPath(int From, int To);
+    std::vector<double> dijkstra(int From, int Avoid);
 };
 //---------------------------------------------------------------------------
 class SGraph : public Graph {
@@ -591,11 +593,12 @@ void   OrWGraph::Random(double Density, double MaxWeight)
     }
 }
 
-vector<double> dijkstra(int start, int avoid) {
-    int n = adjacencyList.size();
-    vector<double> distance(n, numeric_limits<double>::infinity());
-    vector<bool> visited(n, false);
-    priority_queue<pair<double, int>, vector<pair<double, int>>, greater<pair<double, int>>> pq;
+
+std::vector<double> Graph::dijkstra(int start, int avoid) {
+    int n = Size();
+    std::vector<double> distance(n, std::numeric_limits<double>::infinity());
+    std::vector<bool> visited(n, false);
+    std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, std::greater<std::pair<double, int>>> pq;
 
     distance[start] = 0;
     pq.push({ 0, start });
@@ -609,16 +612,16 @@ vector<double> dijkstra(int start, int avoid) {
 
         visited[u] = true;
 
-        for (const Edge& edge : adjacencyList[u]) {
-            int v = edge.destination;
-            double weight = edge.weight;
-
+        for (int v = 0; v < n; ++v) {
             if (u == avoid || v == avoid)
                 continue;
 
-            if (distance[u] + weight < distance[v]) {
-                distance[v] = distance[u] + weight;
-                pq.push({ distance[v], v });
+            if (_m[u][v] != std::numeric_limits<double>::infinity()) {
+                double weight = _m[u][v];
+                if (distance[u] + weight < distance[v]) {
+                    distance[v] = distance[u] + weight;
+                    pq.push({ distance[v], v });
+                }
             }
         }
     }
@@ -630,7 +633,18 @@ vector<double> dijkstra(int start, int avoid) {
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
-    getch();
+    //getch();
+    Graph graph = Graph(5);
+    graph.AddEdge(0, 1, 1);
+    graph.AddEdge(0, 2, 1);
+    graph.AddEdge(0, 3, 3);
+    graph.AddEdge(1, 4, 5);
+    graph.AddEdge(2, 4, 1);
+    graph.AddEdge(3, 4, 2);
+    double distance = graph.dijkstra(0, 4)[0];
+    std::cout << distance;
+    graph.Print();
+    graph.ShortestPath(0, 4).Print();
     return 0;
 }
 //---------------------------------------------------------------------------
