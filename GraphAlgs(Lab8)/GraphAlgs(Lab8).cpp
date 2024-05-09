@@ -86,6 +86,7 @@ public:
     std::vector<double> dijkstraAvoid(int From, int Avoid);
     bool IsConnected();
     bool IsEulerian();
+    std::vector<int> GetEulerCycle();
     void GenerateEulerGraph();
 };
 //---------------------------------------------------------------------------
@@ -666,19 +667,30 @@ bool Graph::IsConnected() {
     while (!q.empty()) {
         int vertex = q.front();
         q.pop();
-        visited[vertex] = true;
-        countVisited++;
-        for (int neighbor = 0; neighbor < _Size; ++neighbor) {
-            if (_m[vertex][neighbor] != DBL_MAX && !visited[neighbor]) {
-                q.push(neighbor);
+        if (visited[vertex] == false)
+        {
+            visited[vertex] = true;
+            countVisited++;
+            for (int neighbor = 0; neighbor < _Size; neighbor++) {
+                if (_m[vertex][neighbor] != DBL_MAX && !visited[neighbor]) {
+                    q.push(neighbor);
+                }
             }
         }
     }
     return countVisited == _Size;
 }
 
+template<typename S>
+auto select_random(const S& s, size_t n) {
+    auto it = std::begin(s);
+    std::advance(it, n);
+    return it;
+}
 
-void Graph::GenerateEulerGraph() {
+
+void Graph::GenerateEulerGraph() 
+{
     int startVertex = rand() % _Size;
     int currentVertex = startVertex;
     int nextVertex;
@@ -691,22 +703,30 @@ void Graph::GenerateEulerGraph() {
 
     while (true) 
     {
-        nextVertex = rand() % nodes.size();
-        if (degrees[nextVertex] != 0 && degrees[currentVertex] != 0 && degrees[nextVertex] == degrees[currentVertex])
+        int r = rand() % nodes.size();
+        nextVertex = *select_random(nodes, r);
+        if (degrees[nextVertex] != 0 && degrees[currentVertex] != 0 && nextVertex != currentVertex)
         {
             _m[nextVertex][currentVertex] = 1;
             _m[currentVertex][nextVertex] = 1;
             degrees[nextVertex]--;
             degrees[currentVertex]--;
+
+            if (degrees[nextVertex] == 0)
+                nodes.erase(nextVertex);
+            if (degrees[currentVertex] == 0)
+                nodes.erase(currentVertex);
+
             currentVertex = nextVertex;
-            nodes.erase(nextVertex);
         }
-        if (currentVertex == startVertex)
+        if (nodes.size() < 2)
         {
             break;
         }
     }
 }
+
+
 
 bool Graph::IsEulerian() {
     if (!IsConnected()) {
@@ -716,7 +736,7 @@ bool Graph::IsEulerian() {
 
     int oddDegreeVertices = 0;
     for (int i = 0; i < _Size; i++) {
-        int degree = 0;
+        int degree = -1;
         for (int j = 0; j < _Size; j++) {
             if (_m[i][j] != DBL_MAX) {
                 degree++;
@@ -735,31 +755,52 @@ bool Graph::IsEulerian() {
     return oddDegreeVertices == 0 || oddDegreeVertices == 2;
 }
 
+std::vector<int> Graph::GetEulerCycle() {
+    std::vector<int> path;
+    std::stack<int> stk;
+    std::set<int> visited;
+
+    if (!IsEulerian()) {
+        std::cout << "Эйлеров цикл невозможен." << std::endl;
+        return path;
+    }
+
+    int curr_v = 0; // Начинаем с любой вершины
+    do
+    {
+        int next_v = -1;
+        for (int neighbor = 0; neighbor < _Size; neighbor++) {
+            if (_m[curr_v][neighbor] != DBL_MAX) {
+                if (visited.find(neighbor) == visited.end())
+                {
+                    next_v = neighbor;
+                    stk.push(curr_v);
+                    visited.insert(neighbor);
+                    break;
+                }
+            }
+        }
+        if (next_v != -1)
+            curr_v = next_v;
+        else {
+            path.push_back(curr_v);
+            curr_v = stk.top();
+            stk.pop();
+        }
+    } while (!stk.empty());
+
+    for (auto it = path.rbegin(); it != path.rend(); ++it)
+        std::cout << *it << " ";
+    std::cout << std::endl;
+
+    return path;
+}
+
 #pragma argsused
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
     system("chcp 1251");
-
-    //getch();
-    //Graph graph = Graph(5);
-    //graph.AddEdge(0, 1, 1);
-    //graph.AddEdge(0, 2, 1);
-    //graph.AddEdge(0, 3, 3);
-    //graph.AddEdge(1, 4, 5);
-    //graph.AddEdge(2, 4, 1);
-    //graph.AddEdge(3, 4, 2);
-    //std::cout << "Матрица смежности графа:" << std::endl;
-    //graph.Print();
-    //int avoidNode = 2;
-
-    //std::vector<double> dist = graph.dijkstraAvoid(0, avoidNode);
-
-    //std::cout << "Исходный узел = 0  " << "Минуя узел " << avoidNode << std::endl;
-    //std::cout << "Узел назначения  " << "Расстояние" << std::endl;
-    //for (int i = 0; i < dist.size(); i++) {
-    //    std::cout << i << " \t:\t " << dist.at(i) << std::endl;
-    //}
 
 
     Graph graph = Graph(5);
@@ -771,6 +812,8 @@ int main(int argc, char* argv[])
     else {
         std::cout << "Граф не содержит эйлеров цикл" << std::endl;
     }
+
+    graph.GetEulerCycle();
 
     return 0;
 }
