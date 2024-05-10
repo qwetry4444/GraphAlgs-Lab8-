@@ -84,10 +84,16 @@ public:
     Graph   HamiltonianPath(int From, int To);
 
     std::vector<double> dijkstraAvoid(int From, int Avoid);
+
     bool IsConnected();
-    bool IsEulerian();
-    std::vector<int> GetEulerCycle();
+
     void GenerateEulerGraph();
+    bool IsEulerian();
+    std::vector<int> FindEulerCycle();
+
+    void GenerateHamiltonianGraph();
+    bool IsHamiltonian();
+    bool FindHamiltonianCycle(std::vector<int>& path, std::vector<bool>& visited, int current);
 };
 //---------------------------------------------------------------------------
 class SGraph : public Graph {
@@ -636,26 +642,6 @@ std::vector<double> Graph::dijkstraAvoid(int start, int avoid) {
     return distance;
 }
 
-//void Graph::GenerateEulerGraph() 
-//{
-//    std::vector<int> degrees(Size(), 1);
-//
-//    for (int i = 0; i < Size(); i++)
-//    {
-//        for (int j = i + 1; j < Size(); j++) 
-//        {
-//            if (degrees[i] % 2 == 1 && degrees[j] % 2 == 1)
-//            {
-//                _m[i][j] = 1;
-//                _m[j][i] = 1;
-//                degrees[i]--;
-//                degrees[j]--;
-//            }
-//
-//
-//        }
-//    }
-//}
 
 
 bool Graph::IsConnected() {
@@ -689,7 +675,7 @@ auto select_random(const S& s, size_t n) {
 }
 
 
-void Graph::GenerateEulerGraph() 
+void Graph::GenerateEulerGraph()
 {
     int startVertex = rand() % _Size;
     int currentVertex = startVertex;
@@ -701,14 +687,19 @@ void Graph::GenerateEulerGraph()
         nodes.insert(i);
     }
 
-    while (true) 
+    while (true)
     {
-        int r = rand() % nodes.size();
-        nextVertex = *select_random(nodes, r);
+        int rNext = rand() % nodes.size();
+        int rCurrent = rand() % nodes.size();
+        nextVertex = *select_random(nodes, rNext);
+        currentVertex = *select_random(nodes, rCurrent);
+
+
         if (degrees[nextVertex] != 0 && degrees[currentVertex] != 0 && nextVertex != currentVertex)
         {
-            _m[nextVertex][currentVertex] = 1;
-            _m[currentVertex][nextVertex] = 1;
+            AddEdge(nextVertex, currentVertex);
+            AddEdge(currentVertex, nextVertex);
+
             degrees[nextVertex]--;
             degrees[currentVertex]--;
 
@@ -722,6 +713,14 @@ void Graph::GenerateEulerGraph()
         if (nodes.size() < 2)
         {
             break;
+        }
+    }
+    
+    for (int i = 0; i < _Size; i++) {
+        for (int j = 0; j < _Size; j++) {
+            if (_m[i][j] == DBL_MAX) {
+                AddEdge(i, j);
+            }
         }
     }
 }
@@ -755,46 +754,175 @@ bool Graph::IsEulerian() {
     return oddDegreeVertices == 0 || oddDegreeVertices == 2;
 }
 
-std::vector<int> Graph::GetEulerCycle() {
-    std::vector<int> path;
-    std::stack<int> stk;
-    std::set<int> visited;
+std::vector<int> Graph::FindEulerCycle()
+{
+    int currentVertex;
+    bool found_edge = false;
+    int startVertex = 0;
 
-    if (!IsEulerian()) {
-        std::cout << "Эйлеров цикл невозможен." << std::endl;
-        return path;
-    }
+    std::stack<int> stack;
+    std::vector<int> path(0);
 
-    int curr_v = 0; // Начинаем с любой вершины
-    do
-    {
-        int next_v = -1;
+    //if (!IsEulerian()) {
+    //    std::cout << "Граф не содержит Эйлеров цикл" << std::endl;
+    //    return path;
+    //}
+
+
+    for (int i = 0; i < _Size; i++) {
+        int degree = 0;
         for (int neighbor = 0; neighbor < _Size; neighbor++) {
-            if (_m[curr_v][neighbor] != DBL_MAX) {
-                if (visited.find(neighbor) == visited.end())
-                {
-                    next_v = neighbor;
-                    stk.push(curr_v);
-                    visited.insert(neighbor);
-                    break;
-                }
+            if (_m[i][neighbor] != DBL_MAX && i != neighbor) {
+                degree++;
             }
         }
-        if (next_v != -1)
-            curr_v = next_v;
-        else {
-            path.push_back(curr_v);
-            curr_v = stk.top();
-            stk.pop();
+        if (degree % 2 == 1) {
+            startVertex = i;
+            break;
         }
-    } while (!stk.empty());
+    }
 
-    for (auto it = path.rbegin(); it != path.rend(); ++it)
-        std::cout << *it << " ";
-    std::cout << std::endl;
+
+    stack.push(startVertex);
+    while (!stack.empty())
+    {
+        currentVertex = stack.top();
+        found_edge = false;
+        for (int neighbor = 0; neighbor < _Size; neighbor++) {
+            if (_m[currentVertex][neighbor] != DBL_MAX
+                && currentVertex != neighbor)
+            {
+                stack.push(neighbor);
+                found_edge = true;
+                _m[currentVertex][neighbor] = DBL_MAX;
+                _m[neighbor][currentVertex] = DBL_MAX;
+                break;
+            }
+        }
+        if (!found_edge)
+        {
+            stack.pop();
+            path.push_back(currentVertex);
+        }
+    }
+
+    //for (int i = 0; i < path.size(); i++) {
+        //std::cout << path[i] << " -> ";
+    //}
 
     return path;
 }
+
+
+void Graph::GenerateHamiltonianGraph()
+{
+    int startVertex = rand() % _Size;
+
+    for (int i = 0; i < _Size; i++) {
+        for (int j = 0; j < _Size; j++) {
+            if (i != j && _m[i][j] == DBL_MAX) {
+                if (rand() % 4 == 1) {
+                    AddEdge(i, j);
+                    AddEdge(j, i);
+                }
+            }
+        }
+    }
+
+    int degree;
+    for (int i = 0; i < _Size; i++) {
+        degree = 0;
+        for (int j = 0; j < _Size; j++) {
+            if (_m[i][j] != DBL_MAX && i != j) {
+                degree++;
+            }
+        }
+        while (degree < _Size / 2.0) {
+            int randVertex = rand() % _Size;
+            if (randVertex != i && _m[i][randVertex] == DBL_MAX) {
+                AddEdge(i, randVertex);
+                AddEdge(randVertex, i);
+                degree++;
+            }
+        }
+    }
+}
+
+
+
+bool Graph::IsHamiltonian()
+{
+    std::vector<int> degrees(_Size, 0);
+    for (int i = 0; i < _Size; i++) {
+        for (int j = 0; j < _Size; j++) {
+            if (i != j && _m[i][j] != DBL_MAX) {
+                degrees[i]++;
+            }
+        }
+        degrees[i] /= 2;
+    }
+    for (int i = 0; i < _Size; i++) {
+        if (degrees[i] < _Size / 2) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Graph::FindHamiltonianCycle(std::vector<int>& path, std::vector<bool>& visited, int current) 
+{
+    path.push_back(current);
+    if (path.size() == _Size) {
+        if (_m[path[0]][path.back()] != DBL_MAX) {
+            return true;
+        }
+        else {
+            path.pop_back();
+            return false;
+        }
+    }
+    visited[current] = true;
+
+    for (int next = 0; next < _Size; next++) {
+        if (_m[current][next] != DBL_MAX && !visited[next]) {
+            if (FindHamiltonianCycle(path, visited, next)) {
+                return true;
+            }
+        }
+    }
+    visited[current] = false;
+    path.pop_back();
+    return false;
+}
+
+void euler_time_analyze(int vCount) 
+{
+    Graph graph(vCount);
+    graph.GenerateEulerGraph();
+    
+    clock_t start = clock();
+
+    graph.FindEulerCycle();
+
+    clock_t end = clock();
+    std::cout << (double)(end - start) / CLOCKS_PER_SEC << std::endl;
+}
+
+void hamiltonian_time_analyze(int vCount)
+{
+    Graph graph(vCount);
+    graph.GenerateHamiltonianGraph();
+
+    clock_t start = clock();
+
+    std::vector<int> path(0);
+    std::vector<bool> visited(graph.Size());
+    graph.FindHamiltonianCycle(path, visited, 0);
+
+    clock_t end = clock();
+    std::cout << (double)(end - start) / CLOCKS_PER_SEC << std::endl;
+}
+
 
 #pragma argsused
 //---------------------------------------------------------------------------
@@ -803,17 +931,42 @@ int main(int argc, char* argv[])
     system("chcp 1251");
 
 
-    Graph graph = Graph(5);
-    graph.GenerateEulerGraph();
-    graph.Print();
-    if (graph.IsEulerian()) {
-        std::cout << "Граф содержит эйлеров цикл" << std::endl;
-    }
-    else {
-        std::cout << "Граф не содержит эйлеров цикл" << std::endl;
-    }
+    //Graph graph = Graph(5);
+    //graph.GenerateEulerGraph();
+    //
+    //graph.Print();
+    //if (graph.IsEulerian()) {
+    //    std::cout << "Граф содержит эйлеров цикл" << std::endl;
+    //}
+    //else {
+    //    std::cout << "Граф не содержит эйлеров цикл" << std::endl;
+    //}
+    //graph.FindEulerCycle();
 
-    graph.GetEulerCycle();
+    //graph.GenerateHamiltonianGraph();
+
+    //graph.Print();
+    //if (graph.IsHamiltonian()) {
+    //    std::cout << "Граф содержит гамильтонов цикл" << std::endl;
+    //}
+    //else {
+    //    std::cout << "Граф не содержит гамильтонов цикл" << std::endl;
+    //}
+
+    //std::vector<int> path(0);
+    //std::vector<bool> visited(graph.Size());
+
+    //graph.FindHamiltonianCycle(path, visited, 0);
+    //for (int i = 0; i < path.size(); i++) {
+    //    std::cout << path[i] << " -> ";
+    //}
+
+
+
+    for (int i = 101; i < 2000; i += 100) {
+        //euler_time_analyze(i);
+        hamiltonian_time_analyze(i);
+    }
 
     return 0;
 }
