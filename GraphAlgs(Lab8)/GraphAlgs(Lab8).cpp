@@ -912,11 +912,10 @@ void hamiltonian_time_analyze(int vCount)
 {
     Graph graph(vCount);
     graph.GenerateHamiltonianGraph();
-
-    clock_t start = clock();
-
     std::vector<int> path(0);
     std::vector<bool> visited(graph.Size());
+    clock_t start = clock();
+
     graph.FindHamiltonianCycle(path, visited, 0);
 
     clock_t end = clock();
@@ -963,7 +962,7 @@ int main(int argc, char* argv[])
 
 
 
-    for (int i = 101; i < 2000; i += 100) {
+    for (int i = 100; i < 1900; i += 100) {
         //euler_time_analyze(i);
         hamiltonian_time_analyze(i);
     }
