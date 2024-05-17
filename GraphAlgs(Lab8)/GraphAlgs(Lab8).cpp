@@ -326,6 +326,7 @@ void   Graph::Random(double Density, double MaxWeight)
 //---------------------------------------------------------------------------
 void   Graph::Print(void)
 {
+    std::cout << "Матрица смежности графа:" << std::endl;
     for (int i = 0; i < _Size; i++)
     {
         for (int j = 0; j < _Size; j++)
@@ -695,7 +696,7 @@ void Graph::GenerateEulerGraph()
         currentVertex = *select_random(nodes, rCurrent);
 
 
-        if (degrees[nextVertex] != 0 && degrees[currentVertex] != 0 && nextVertex != currentVertex)
+        if (degrees[nextVertex] != 0 && degrees[currentVertex] != 0 && nextVertex != currentVertex && _m[currentVertex][nextVertex] == DBL_MAX)
         {
             AddEdge(nextVertex, currentVertex);
             AddEdge(currentVertex, nextVertex);
@@ -707,20 +708,24 @@ void Graph::GenerateEulerGraph()
                 nodes.erase(nextVertex);
             if (degrees[currentVertex] == 0)
                 nodes.erase(currentVertex);
-
-            currentVertex = nextVertex;
         }
-        if (nodes.size() < 2)
+        if (nodes.size() < 3)
         {
-            break;
-        }
-    }
-    
-    for (int i = 0; i < _Size; i++) {
-        for (int j = 0; j < _Size; j++) {
-            if (_m[i][j] == DBL_MAX) {
-                AddEdge(i, j);
+            auto x1 = *(nodes.begin());
+            nodes.erase(x1);
+            auto x2 = *(nodes.begin());
+            AddEdge(x1, x2);
+            AddEdge(x2, x1);
+
+            int rndVertex = rand() % _Size;
+            while (rndVertex == x1 || rndVertex == x2) {
+                rndVertex = rand() % _Size;
             }
+            AddEdge(x1, rndVertex);
+            AddEdge(rndVertex, x1);
+            AddEdge(x2, rndVertex);
+            AddEdge(rndVertex, x2);
+            break;
         }
     }
 }
@@ -763,10 +768,6 @@ std::vector<int> Graph::FindEulerCycle()
     std::stack<int> stack;
     std::vector<int> path(0);
 
-    //if (!IsEulerian()) {
-    //    std::cout << "Граф не содержит Эйлеров цикл" << std::endl;
-    //    return path;
-    //}
 
 
     for (int i = 0; i < _Size; i++) {
@@ -805,10 +806,6 @@ std::vector<int> Graph::FindEulerCycle()
             path.push_back(currentVertex);
         }
     }
-
-    //for (int i = 0; i < path.size(); i++) {
-        //std::cout << path[i] << " -> ";
-    //}
 
     return path;
 }
@@ -859,7 +856,6 @@ bool Graph::IsHamiltonian()
                 degrees[i]++;
             }
         }
-        degrees[i] /= 2;
     }
     for (int i = 0; i < _Size; i++) {
         if (degrees[i] < _Size / 2) {
@@ -930,7 +926,7 @@ int main(int argc, char* argv[])
     system("chcp 1251");
 
 
-    //Graph graph = Graph(5);
+    Graph graph = Graph(8);
     //graph.GenerateEulerGraph();
     //
     //graph.Print();
@@ -940,31 +936,38 @@ int main(int argc, char* argv[])
     //else {
     //    std::cout << "Граф не содержит эйлеров цикл" << std::endl;
     //}
-    //graph.FindEulerCycle();
-
-    //graph.GenerateHamiltonianGraph();
-
-    //graph.Print();
-    //if (graph.IsHamiltonian()) {
-    //    std::cout << "Граф содержит гамильтонов цикл" << std::endl;
-    //}
-    //else {
-    //    std::cout << "Граф не содержит гамильтонов цикл" << std::endl;
-    //}
-
-    //std::vector<int> path(0);
-    //std::vector<bool> visited(graph.Size());
-
-    //graph.FindHamiltonianCycle(path, visited, 0);
-    //for (int i = 0; i < path.size(); i++) {
-    //    std::cout << path[i] << " -> ";
+    //
+    //std::vector<int> eulerCycle = graph.FindEulerCycle();
+    //std::cout << eulerCycle[0] + 1;
+    //for (int i = 1; i < eulerCycle.size(); i++) {
+    //    std::cout << " -> " << eulerCycle[i] + 1;
     //}
 
 
+    graph.GenerateHamiltonianGraph();
 
-    for (int i = 100; i < 1900; i += 100) {
+    graph.Print();
+    if (graph.IsHamiltonian()) {
+        std::cout << "Граф содержит гамильтонов цикл" << std::endl;
+    }
+    else {
+        std::cout << "Граф не содержит гамильтонов цикл" << std::endl;
+    }
+
+    std::vector<int> path(0);
+    std::vector<bool> visited(graph.Size());
+
+    graph.FindHamiltonianCycle(path, visited, 0);
+    std::cout << path[0] + 1;
+    for (int i = 1; i < path.size(); i++) {
+        std::cout << " -> " << path[i] + 1;
+    }
+
+
+
+    for (int i = 2500; i <= 50000; i += 2500) {
         //euler_time_analyze(i);
-        hamiltonian_time_analyze(i);
+        //hamiltonian_time_analyze(i);
     }
 
     return 0;
